@@ -33,7 +33,7 @@ export class UsersService {
 
     return this.prismaService.user.create({ data: createUserDto });
   }
-
+  
   findAll() {
     return this.prismaService.user.findMany();
   }
@@ -42,12 +42,34 @@ export class UsersService {
     return this.getUserById(id);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    await this.getUserById(id);
+
+    const roleService = new RolesService(this.prismaService);
+    const organizationService = new OrganizationsService(this.prismaService);
+
+    await roleService.findOne(updateUserDto.roleId);
+    await organizationService.findOne(updateUserDto.organizationId);
+
+    updateUserDto.name = capatalizeFirstLetterOfEachWordInAphrase(updateUserDto.name);
+    if(updateUserDto.name){
+      updateUserDto.name= capatalizeFirstLetterOfEachWordInAphrase(updateUserDto.name);
+    }
+    if(!await this.checkIfEmailExist(updateUserDto.email,id)){
+      throw new BadRequestException(`User ${updateUserDto.email}has alrready been taken`)
+    }
+    if(!await this.checkIfMobileExist(updateUserDto.mobile,id)){
+      throw new BadRequestException(`User${updateUserDto.mobile} has alrready been taken`)
+    }
+    if(updateUserDto.password){
+      updateUserDto.password = await hash(updateUserDto.password, 10);
+    }
+    return this.prismaService.user.update({where:{id},data:updateUserDto});
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number) {
+    await this.getUserById(id);
+    return this.prismaService.user.deleteMany({where:{id}});
   }
   private async getUserById(id:number){
     const user = await this.prismaService.user.findFirst({where:{id}});
@@ -80,5 +102,15 @@ export class UsersService {
       return user ? user.id === id : true;
     }
     return !!user;
+  }
+  private async checkIfUserExist(name:string, id?:number):Promise<boolean>{
+    const user = await this.prismaService.user.findFirst({
+     where :{ name,}
+    });
+    if (id) {
+      return user ? user.id === id : true;
+    }
+    return !!user;
+
   }
 }

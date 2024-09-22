@@ -22,14 +22,15 @@ model Role {
 }
 
 model Organization {
-  id        Int              @id() @default(autoincrement())
-  name      String           @unique
-  type      OrganizationType @default(retail)
-  address   String?
-  phone     String?          @db.VarChar(15)
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @default(now()) @map("updated_at")
-  user      User[]
+  id                Int                @id() @default(autoincrement())
+  name              String             @unique
+  type              OrganizationType   @default(retail)
+  address           String?
+  phone             String?            @db.VarChar(15)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @default(now()) @map("updated_at")
+  user              User[]
+  itemOrganizations ItemOrganization[]
 
   @@map("organizations")
 }
@@ -40,18 +41,68 @@ enum OrganizationType {
 }
 
 model User {
-  id             Int          @id @default(autoincrement())
-  roleId         Int          @map("role_id")
-  organizationId Int          @map("organization_id")
+  id             Int      @id @default(autoincrement())
+  roleId         Int      @map("role_id")
+  organizationId Int      @map("organization_id")
   name           String
-  email          String       @unique
-  mobile         String       @unique @db.VarChar(15)
+  email          String   @unique
+  mobile         String   @unique @db.VarChar(15)
   password       String
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @default(now()) @map("updated_at")
-  
-  role           Role         @relation(fields: [roleId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  role         Role         @relation(fields: [roleId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
 
   @@map("user")
+}
+
+model Item {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  description  String?
+  quantity     Int          @default(0)
+  price        Float        @default(0)
+  discount     Float        @default(0)
+  discountType DiscountType @default(rate)
+  tax          Float        @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now())
+
+  itemOrganizations ItemOrganization[]
+
+  @@map("items")
+}
+
+model ItemOrganization {
+  itemId         Int
+  organizationId Int
+
+  item         Item         @relation(fields: [itemId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([itemId, organizationId]) // Composite primary key
+  @@map("item_organization")
+}
+
+enum DiscountType {
+  rate
+  amount
+}
+
+model CustomerVendor {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  email       String?
+  phone       String?  @db.VarChar(15)
+  street      String?
+  city        String?
+  district    String?
+  province    String?
+  isVendor    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("customer_vendors")
 }
